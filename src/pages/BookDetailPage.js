@@ -4,49 +4,34 @@ import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../apiService";
 import { Container, Button, Box, Grid, Stack, Typography } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { addToFavorites, fetchBooksById } from "../booksSlice";
 
 
 const BACKEND_API = process.env.REACT_APP_BACKEND_API;
 
 const BookDetailPage = () => {
-  const [loading, setLoading] = useState(false);
-  const [book, setBook] = useState(null);
-  const [addingBook, setAddingBook] = useState(false);
   const params = useParams();
   const bookId = params.id;
+  const dispatch = useDispatch();
 
-  const addToReadingList = (book) => {
-    setAddingBook(book);
-  };
+  //accessing state from redux
+  const {bookDetail: book, loading, error} = useSelector((state) => state.books)
 
+  //fetch books when the page loads
   useEffect(() => {
-    const postData = async () => {
-      if (!addingBook) return;
-      setLoading(true);
-      try {
-        await api.post(`/favorites`, addingBook);
-        toast.success("The book has been added to the reading list!");
-      } catch (error) {
-        toast.error(error.message);
-      }
-      setLoading(false);
-    };
-    postData();
-  }, [addingBook]);
+    dispatch(fetchBooksById({id: bookId}))
+  }, [dispatch, bookId])
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get(`/books/${bookId}`);
-        setBook(res.data);
-      } catch (error) {
-        toast.error(error.message);
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [bookId]);
+  //add Book to reading list
+  const addToReadingList = () => {
+    if(book) {
+      dispatch(addToFavorites(book))
+      .unwrap()
+      .then(() => toast.success("The book has been added to the reading list"))
+      .catch((error) => toast.error(error.message))
+    }
+  }
 
   return (
     <Container>

@@ -4,53 +4,35 @@ import { ClipLoader } from "react-spinners";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../apiService";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchFavorites, removeFavorite } from "../booksSlice";
 
 const BACKEND_API = process.env.REACT_APP_BACKEND_API;
 
 const ReadingPage = () => {
-  const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [removedBookId, setRemovedBookId] = useState("");
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  //redux state
+  const {favorites, loading} = useSelector((state) => state.books)
+
+  //fetch initial
+  useEffect(() =>{
+    dispatch(fetchFavorites());
+  }, [dispatch]);
 
   const handleClickBook = (bookId) => {
     navigate(`/books/${bookId}`);
   };
 
   const removeBook = (bookId) => {
-    setRemovedBookId(bookId);
-  };
-
-  useEffect(() => {
-    if (removedBookId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get(`/favorites`);
-        setBooks(res.data);
-      } catch (error) {
-        toast(error.message);
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [removedBookId]);
-
-  useEffect(() => {
-    if (!removedBookId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        await api.delete(`/favorites/${removedBookId}`);
-        toast.success("The book has been removed");
-        setRemovedBookId("");
-      } catch (error) {
-        toast(error.message);
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [removedBookId]);
+    if (bookId) {
+      dispatch(removeFavorite(bookId))
+      .unwrap()
+      .then(() => toast.success("The book has been removed"))
+      .catch((error) => toast.error(error.message))
+    }
+  }
 
   return (
     <Container>
@@ -61,7 +43,7 @@ const ReadingPage = () => {
         </Box>
       ) : (
         <Stack direction="row" spacing={2} justifyContent="space-around" flexWrap={"wrap"}>
-          {books.map((book) => (
+          {favorites.map((book) => (
             <Card
               key={book.id}
               sx={{
